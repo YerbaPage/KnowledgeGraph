@@ -1,0 +1,49 @@
+import pandas as pd
+
+# 读取文件，删除含有空值的行
+data = pd.read_excel('C:/given_company/key_1.xlsx')
+data.dropna(axis=0, how='any', inplace=True)
+
+# '工作经验'和'所招人数'列去掉汉字
+data['工作经验'].replace(['[.*年经验]', '[.*需经验]'], ['', ''], inplace=True, regex=True)
+data['所招人数'].replace(['[招.*人]', '[异地招聘招.*]'], ['', ''], inplace=True, regex=True)
+
+# 把'工资'列用'年'做单位的数据整行删除，把'/月'删除
+data = data[~data['工资'].str.contains('年')]
+data['工资'].replace('[*？/月]', '', inplace=True, regex=True)
+
+# 把区间形式的'工作经验'改写成区间均值,暂时把'10以上'改成'11'，算完平均值以后再改回来
+data.replace('无', '0', inplace=True, regex=True)
+for i in range(0, 9):
+    str1 = str(i)
+    str2 = str(i) + "-" + str(i)
+    data['工作经验'].replace([str1], [str2], inplace=True, regex=True)
+df = data['工作经验'].str.split('-', expand=True)
+data['工作经验1'] = df[0]
+data['工作经验2'] = df[1]
+data.replace('10以上', '11', inplace=True, regex=True)
+data.fillna(method='ffill', axis=1, inplace=True)
+data['工作经验1'] = data['工作经验1'].astype('int')
+data['工作经验2'] = data['工作经验2'].astype('int')
+data['工作经验'] = (data['工作经验1'] + data['工作经验2'])/2
+data['工作经验'] = data['工作经验'].astype('str')
+data['工作经验'].replace('.0', '', inplace=True, regex=True)
+data['工作经验'].replace('11', '10以上', inplace=True, regex=True)
+
+# 把'工资'转换为以元为单位的平均值
+df = data['工资'].str.split('-', expand=True)
+data['工资1'] = df[0]
+data['工资2'] = df[1]
+data['工资3'] = df[1]
+data['工资2'].replace('万', '', inplace=True, regex=True)
+data['工资2'].replace('千', '', inplace=True, regex=True)
+data['工资3'].replace('[0-9]', '', inplace=True, regex=True)
+data.loc[(data['工资3'] == '万') | (data['工资3'] == '.万'), '工资4'] = '10000'
+data.loc[(data['工资3'] != '万') & (data['工资3'] != '.万'), '工资4'] = '1000'
+data['工资1'] = pd.to_numeric(data['工资1'], errors='coerce')
+data['工资2'] = pd.to_numeric(data['工资2'], errors='coerce')
+data['工资4'] = pd.to_numeric(data['工资4'], errors='coerce')
+data['工资'] = (data['工资1'] + data['工资2'])/2 * data['工资4']
+data = data[['公司名称', '职位', '发布时间', '工资', '类别', '工作地点', '工作经验', '所招人数', '学历']]
+
+data.to_excel('C:/given_company/key_1_cleaned.xlsx', index=False)

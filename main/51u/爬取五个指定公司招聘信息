@@ -1,0 +1,166 @@
+# -*- coding: utf-8 -*-
+
+import requests
+import re
+import random
+import time
+import pandas as pd
+import os
+from lxml import html
+etree = html.etree
+
+
+# 浏览器的头信息
+users = [
+    'Mozilla/4.0 (compatible; MSIE 7.0; AOL 9.5; AOLBuild 4337.35; Windows NT 5.1; .NET CLR 1.1.4322; .NET CLR 2.0.50727)',
+    'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/535.24 (KHTML, like Gecko) Chrome/19.0.1055.1 Safari/535.24',
+    'Mozilla/5.0 (X11; U; Linux; en-US) AppleWebKit/527+ (KHTML, like Gecko, Safari/419.3) Arora/0.6',
+    'Mozilla/5.0 (Windows NT 6.2) AppleWebKit/536.3 (KHTML, like Gecko) Chrome/19.0.1061.0 Safari/536.3',
+    'Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.8.0.12) Gecko/20070731 Ubuntu/dapper-security Firefox/1.5.0.12',
+    'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/535.11 (KHTML, like Gecko) Chrome/17.0.963.56 Safari/535.11',
+    'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_7_3) AppleWebKit/535.20 (KHTML, like Gecko) Chrome/19.0.1036.7 Safari/535.20',
+    'Mozilla/4.0 (compatible; MSIE 7.0b; Windows NT 5.2; .NET CLR 1.1.4322; .NET CLR 2.0.50727; InfoPath.2; .NET CLR 3.0.04506.30)',
+    'Mozilla/5.0 (Windows NT 6.2; WOW64) AppleWebKit/537.1 (KHTML, like Gecko) Chrome/19.77.34.5 Safari/537.1',
+    'Mozilla/5.0 (Windows NT 6.2) AppleWebKit/536.6 (KHTML, like Gecko) Chrome/20.0.1090.0 Safari/536.6',
+    'Mozilla/5.0 (Windows NT 6.2) AppleWebKit/536.3 (KHTML, like Gecko) Chrome/19.0.1061.1 Safari/536.3',
+    'Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1; SV1; .NET CLR 1.1.4322; .NET CLR 2.0.50727)',
+    'Mozilla/5.0 (Windows NT 6.2; WOW64) AppleWebKit/535.24 (KHTML, like Gecko) Chrome/19.0.1055.1 Safari/535.24',
+    'Mozilla/4.0 (compatible; MSIE 7.0; Windows NT 6.0; Acoo Browser; SLCC1; .NET CLR 2.0.50727; Media Center PC 5.0; .NET CLR 3.0.04506)',
+    'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/536.5 (KHTML, like Gecko) Chrome/19.0.1084.9 Safari/536.5',
+    'Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1; SV1; AcooBrowser; .NET CLR 1.1.4322; .NET CLR 2.0.50727)',
+    'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/536.6 (KHTML, like Gecko) Chrome/20.0.1092.0 Safari/536.6',
+    'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.1 (KHTML, like Gecko) Chrome/21.0.1180.89 Safari/537.1',
+    'Mozilla/5.0 (Windows NT 6.2) AppleWebKit/536.3 (KHTML, like Gecko) Chrome/19.0.1062.0 Safari/536.3',
+    'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36',
+    'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_8_0) AppleWebKit/536.3 (KHTML, like Gecko) Chrome/19.0.1063.0 Safari/536.3',
+    'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.11 (KHTML, like Gecko) Chrome/23.0.1271.64 Safari/537.11',
+    'Mozilla/5.0 (compatible; MSIE 9.0; Windows NT 6.1; Win64; x64; Trident/5.0; .NET CLR 3.5.30729; .NET CLR 3.0.30729; .NET CLR 2.0.50727; Media Center PC 6.0)',
+    'Mozilla/5.0 (X11; CrOS i686 2268.111.0) AppleWebKit/536.11 (KHTML, like Gecko) Chrome/20.0.1132.57 Safari/536.11',
+    'Mozilla/4.0 (compatible; MSIE 7.0; Windows NT 5.1; Trident/4.0; SV1; QQDownload 732; .NET4.0C; .NET4.0E; 360SE)',
+    'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/536.3 (KHTML, like Gecko) Chrome/19.0.1062.0 Safari/536.3',
+    'Mozilla/5.0 (X11; U; Linux x86_64; zh-CN; rv:1.9.2.10) Gecko/20100922 Ubuntu/10.10 (maverick) Firefox/3.6.10',
+    'Mozilla/5.0 (Windows NT 6.1) AppleWebKit/536.3 (KHTML, like Gecko) Chrome/19.0.1061.1 Safari/536.3',
+    'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.1 (KHTML, like Gecko) Chrome/21.0.1180.71 Safari/537.1 LBBROWSER',
+    'Opera/9.80 (Macintosh; Intel Mac OS X 10.6.8; U; fr) Presto/2.9.168 Version/11.52',
+    'Mozilla/5.0 (Windows; U; Windows NT 5.1; en-US; rv:1.8.1.2pre) Gecko/20070215 K-Ninja/2.1.1',
+    'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/536.3 (KHTML, like Gecko) Chrome/19.0.1061.1 Safari/536.3',
+    'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/536.3 (KHTML, like Gecko) Chrome/19.0.1063.0 Safari/536.3',
+    'Mozilla/5.0 (Windows NT 6.0) AppleWebKit/536.5 (KHTML, like Gecko) Chrome/19.0.1084.36 Safari/536.5',
+    'Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1; SV1; QQDownload 732; .NET4.0C; .NET4.0E)',
+    'Mozilla/5.0 (iPhone; CPU iPhone OS 10_3 like Mac OS X) AppleWebKit/603.1.30 (KHTML, like Gecko) Version/10.3 Mobile/14E277 Safari/603.1.30',
+    'Mozilla/5.0 (Windows; U; MSIE 9.0; Windows NT 9.0; en-US)',
+    'Mozilla/5.0 (Windows NT 5.1) AppleWebKit/536.3 (KHTML, like Gecko) Chrome/19.0.1063.0 Safari/536.3',
+    'Mozilla/5.0 (Windows; U; Windows NT 5.1; zh-CN; rv:1.9) Gecko/20080705 Firefox/3.0 Kapiko/3.0',
+    'Mozilla/5.0 (compatible; MSIE 8.0; Windows NT 6.0; Trident/4.0; WOW64; Trident/4.0; SLCC2; .NET CLR 2.0.50727; .NET CLR 3.5.30729; .NET CLR 3.0.30729; .NET CLR 1.0.3705; .NET CLR 1.1.4322)',
+    'Mozilla/5.0 (Windows; U; Windows NT 5.1; zh-CN) AppleWebKit/523.15 (KHTML, like Gecko, Safari/419.3) Arora/0.3 (Change: 287 c9dfb30)',
+    'Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1; SV1; QQDownload 732; .NET4.0C; .NET4.0E; LBBROWSER)',
+    'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.1 (KHTML, like Gecko) Chrome/22.0.1207.1 Safari/537.1',
+    'Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.0.8) Gecko Fedora/1.9.0.8-1.fc10 Kazehakase/0.5.6',
+    'Mozilla/5.0 (X11; Linux i686; U;) Gecko/20070322 Kazehakase/0.4.5']
+
+# 正则表达式提取数据
+# 工作职位
+r1 = '"job_title":"(.*?)","company_href"'
+re1 = re.compile(r1)
+# 地点经验学历
+r2 = '"attribute_text":(.*?),"companysize_text"'
+re2 = re.compile(r2)
+# 工资
+r3 = '"providesalary_text":"(.*?)","workarea"'
+re3 = re.compile(r3)
+# 发布时间
+r4 = '"issuedate":"(.*?)","isFromXyz"'
+re4 = re.compile(r4)
+# 类别
+r5 = '"companytype_text":"(.*?)","degreefrom"'
+re5 = re.compile(r5)
+# 公司名称
+r6 = '"company_name":"(.*?)","providesalary_text"'
+re6 = re.compile(r6)
+
+
+# 访问网页函数
+def get_data(url):
+    for n in range(5):
+        try:
+            dfs = requests.get(url, headers={'User-Agent': random.choice(users)}, timeout=5).text
+        except Exception:
+            pass
+        else:
+            break
+    return dfs
+
+
+# 提取地点函数
+def get_1(x):
+    x_ = eval(x)
+    # x_s = [s for s in x_ if '北京' in s]
+    return x_[0]
+
+
+# 提取工作经验函数
+def get_2(x):
+    x_ = eval(x)
+    x_s = [s for s in x_ if '经验' in s]
+    return ''.join(x_s)
+
+
+# 提取所招人数函数
+def get_3(x):
+    x_ = eval(x)
+    x_s = [s for s in x_ if '招' in s]
+    return ''.join(x_s)
+
+
+# 提取学历函数
+def get_4(x):
+    x_ = eval(x)
+    x_s = [s for s in x_ if s in ['中专', '中技', '初中及以下', '博士', '在校生/应届生', '大专', '本科', '硕士', '高中']]
+    return ''.join(x_s)
+
+
+# 输入公司名称
+dict = {'1': '平安银行股份有限公司', '2': '浦东发展银行股份有限公司', '3': '华瑞银行股份有限公司', '4' : '中信银行股份有限公司', '5' : '光大银行股份有限公司' }
+for j in {'1','2','3','4','5'}:
+    excel_name = 'key_' + str(j)
+    key=dict[j];
+    #新建表格存储数据
+    results = pd.DataFrame()
+    for i in range(1, 6):
+        # 访问网页
+        url = 'https://search.51job.com/list/000000,000000,0000,00,9,99,' + key + ',1,' + str(
+        i) + '.html?lang=c&postchannel=0000&workyear=99&cotype=99&degreefrom=99&jobterm=99&companysize=99&ord_field=0&dibiaoid=0&line=&welfare='
+        data = get_data(url)
+        # 提取信息
+        df1 = re1.findall(data)
+        df2 = re2.findall(data)
+        df3 = re3.findall(data)
+        df4 = re4.findall(data)
+        df5 = re5.findall(data)
+        df6 = re6.findall(data)
+        # 存储信息
+        result = pd.DataFrame()
+        result['公司名称'] = [r.replace('\\', '') for r in df6]
+        result['职位'] = [r.replace('\\', '') for r in df1]
+        result['发布时间'] = [r.replace('\\', '') for r in df4]
+        result['工资'] = [r.replace('\\', '') for r in df3]
+        result['类别'] = [r.replace('\\', '') for r in df5]
+        result['信息'] = [r.replace('\\', '') for r in df2]
+        result['工作地点'] = result['信息'].map(lambda x: get_1(x))
+        result['工作经验'] = result['信息'].map(lambda x: get_2(x))
+        result['所招人数'] = result['信息'].map(lambda x: get_3(x))
+        result['学历'] = result['信息'].map(lambda x: get_4(x))
+
+        # 去除信息这一列
+        result.drop('信息', axis=1, inplace=True)
+
+        # 将爬取到的数据整合到一起
+        results = pd.concat([results, result])
+
+        print(i, len(results))
+
+        excel_name = 'C:/given_company/key_{}.xlsx'.format(str(j))
+        result.to_excel(excel_name, index=None)
+
+
+# 现在可以生成五个Excel，合并csv这一步还没有实现
